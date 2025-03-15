@@ -1,0 +1,17 @@
+{
+    "name": "kutabarik/sanit-db",
+    "description": "PHP library for analyzing and cleaning data in databases",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Kutabarik\\SanitDb\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "kutabarik",
+            "email": "malay.misha@gmail.com"
+        }
+    ],
+    "require": {}
+}
