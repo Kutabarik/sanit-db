@@ -1,0 +1,17 @@
+<?php
+
+return [
+    'table' => 'users',
+    'checks' => [
+        [
+            'type' => 'duplicates',
+            'fields' => ['email'],
+        ],
+        [
+            'type' => 'format',
+            'field' => 'phone',
+            'regex' => '/^\+373[0-9]{8}$/',
+        ],
+    ],
+];
+

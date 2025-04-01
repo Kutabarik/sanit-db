@@ -6,17 +6,23 @@ use RuntimeException;
 
 class RulesLoader
 {
-    public static function loadFromFile(string $filePath): array
+    private array $rules;
+
+    public function __construct(array $rules)
     {
-        if (!file_exists($filePath)) {
-            throw new RuntimeException("Rules file not found: $filePath");
-        }
+        $this->validate($rules);
+        $this->rules = $rules;
+    }
 
-        $json = file_get_contents($filePath);
-        $rules = json_decode($json, true);
+    public function getRules(): array
+    {
+        return $this->rules;
+    }
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException("Invalid JSON in rules file: " . json_last_error_msg());
+    private function validate(array $rules): void
+    {
+        if (!isset($rules['table']) || !isset($rules['checks']) || !is_array($rules['checks'])) {
+            throw new RuntimeException("Invalid structure in rules.");
         }
 
         foreach ($rules['checks'] as $i => $check) {
@@ -32,7 +38,5 @@ class RulesLoader
                 throw new RuntimeException("Missing 'field' or 'regex' in format check #$i");
             }
         }
-
-        return $rules;
     }
 }

@@ -17,23 +17,36 @@ class SanitDb
     }
 
     /**
-     * Starts the data analysis process based on the rules from a file.
+     * Starts the data analysis process using an array of rules (e.g. from config).
      *
-     * @param string $rulesFile Path to the JSON file with rules.
-     * @return array The analysis result.
+     * @param array $rules The rule definitions.
+     * @return array The analysis results.
      */
-    public function process(string $rulesFile): array
+    public function processFromArray(array $rules): array
     {
-        $rules = RulesLoader::loadFromFile($rulesFile);
+        $loader = new RulesLoader($rules);
+        return $this->processInternal($loader->getRules());
+    }
+
+    /**
+     * Internal processing method: applies all defined checks to the data.
+     *
+     * @param array $rules Validated rules.
+     * @return array Analysis results by check type.
+     */
+    private function processInternal(array $rules): array
+    {
         $table = $rules['table'];
         $checks = $rules['checks'];
-
         $results = [];
 
         foreach ($checks as $check) {
-            $data = $this->db->getTableData($table, $check['fields']);
+            $fields = $check['fields'] ?? [$check['field']];
+            $data = $this->db->getTableData($table, $fields);
+
             $analyzer = $this->createAnalyzer($check['type'], $data, $check);
-            $results[$check['type']] = $analyzer->analyze();
+
+            $results[$check['type']][] = $analyzer->analyze();
         }
 
         return $results;
@@ -44,7 +57,7 @@ class SanitDb
      *
      * @param string $type Type of check.
      * @param array $data Data from the database.
-     * @param array $params Additional parameters from the rules.json.
+     * @param array $params Parameters from rules.
      * @return AnalyzerInterface
      */
     private function createAnalyzer(string $type, array $data, array $params): AnalyzerInterface
