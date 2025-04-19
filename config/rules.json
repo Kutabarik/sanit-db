@@ -1,0 +1,22 @@
+{
+  "tables": {
+    "users": [
+      {
+        "type": "duplicates",
+        "fields": ["email"]
+      },
+      {
+        "type": "format",
+        "field": "phone",
+        "regex": "^\\+373[0-9]{8}$"
+      }
+    ],
+    "posts": [
+      {
+        "type": "format",
+        "field": "title",
+        "regex": "^[A-Z].{3,}$"
+      }
+    ]
+  }
+}

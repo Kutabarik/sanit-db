@@ -2,10 +2,10 @@
 
 namespace Kutabarik\SanitDb;
 
-use Kutabarik\SanitDb\Database\DatabaseRepository;
+use Kutabarik\SanitDb\Analyzer\AnalyzerInterface;
 use Kutabarik\SanitDb\Analyzer\DuplicateAnalyzer;
 use Kutabarik\SanitDb\Analyzer\FormatAnalyzer;
-use Kutabarik\SanitDb\Analyzer\AnalyzerInterface;
+use Kutabarik\SanitDb\Database\DatabaseRepository;
 
 class SanitDb
 {
@@ -19,34 +19,22 @@ class SanitDb
     /**
      * Starts the data analysis process using an array of rules (e.g. from config).
      *
-     * @param array $rules The rule definitions.
+     * @param  string  $rulesFile  Path to the rules file.
      * @return array The analysis results.
      */
-    public function processFromArray(array $rules): array
+    public function process(string $rulesFile): array
     {
-        $loader = new RulesLoader($rules);
-        return $this->processInternal($loader->getRules());
-    }
-
-    /**
-     * Internal processing method: applies all defined checks to the data.
-     *
-     * @param array $rules Validated rules.
-     * @return array Analysis results by check type.
-     */
-    private function processInternal(array $rules): array
-    {
-        $table = $rules['table'];
-        $checks = $rules['checks'];
+        $loader = new RulesLoader($rulesFile);
+        $allRules = $loader->getRules();
         $results = [];
 
-        foreach ($checks as $check) {
-            $fields = $check['fields'] ?? [$check['field']];
-            $data = $this->db->getTableData($table, $fields);
-
-            $analyzer = $this->createAnalyzer($check['type'], $data, $check);
-
-            $results[$check['type']][] = $analyzer->analyze();
+        foreach ($allRules['tables'] as $table => $checks) {
+            foreach ($checks as $check) {
+                $fields = $check['fields'] ?? [$check['field']];
+                $data = $this->db->getTableData($table, $fields);
+                $analyzer = $this->createAnalyzer($check['type'], $data, $check);
+                $results[$table][$check['type']][] = $analyzer->analyze();
+            }
         }
 
         return $results;
@@ -55,10 +43,9 @@ class SanitDb
     /**
      * Creates an analyzer depending on the type of check.
      *
-     * @param string $type Type of check.
-     * @param array $data Data from the database.
-     * @param array $params Parameters from rules.
-     * @return AnalyzerInterface
+     * @param  string  $type  Type of check.
+     * @param  array  $data  Data from the database.
+     * @param  array  $params  Parameters from rules.
      */
     private function createAnalyzer(string $type, array $data, array $params): AnalyzerInterface
     {

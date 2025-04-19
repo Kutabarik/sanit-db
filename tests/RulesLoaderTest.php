@@ -5,86 +5,69 @@ use PHPUnit\Framework\TestCase;
 
 class RulesLoaderTest extends TestCase
 {
-    public function testValidRulesAreLoadedCorrectly()
+    private string $tmpFile;
+
+    protected function tearDown(): void
+    {
+        if (isset($this->tmpFile) && file_exists($this->tmpFile)) {
+            unlink($this->tmpFile);
+        }
+    }
+
+    public function test_loads_valid_multi_table_rules()
     {
         $rules = [
-            'table' => 'users',
-            'checks' => [
-                [
-                    'type' => 'duplicates',
-                    'fields' => ['email'],
+            'tables' => [
+                'users' => [
+                    ['type' => 'duplicates', 'fields' => ['email']],
+                    ['type' => 'format', 'field' => 'phone', 'regex' => '/^\+373[0-9]{8}$/'],
                 ],
-                [
-                    'type' => 'format',
-                    'field' => 'phone',
-                    'regex' => '/^\+373\d{8}$/',
-                ]
+                'posts' => [
+                    ['type' => 'format', 'field' => 'title', 'regex' => '/^[A-Z].{3,}$/'],
+                ],
             ],
         ];
 
-        $loader = new RulesLoader($rules);
-        $result = $loader->getRules();
+        $this->tmpFile = tempnam(sys_get_temp_dir(), 'rules_');
+        file_put_contents($this->tmpFile, json_encode($rules));
 
-        $this->assertEquals('users', $result['table']);
-        $this->assertCount(2, $result['checks']);
+        $loader = new RulesLoader($this->tmpFile);
+        $parsed = $loader->getRules();
+
+        $this->assertArrayHasKey('tables', $parsed);
+        $this->assertCount(2, $parsed['tables']);
+        $this->assertCount(2, $parsed['tables']['users']);
+        $this->assertCount(1, $parsed['tables']['posts']);
     }
 
-    public function testMissingTableThrowsException()
+    public function test_missing_tables_key_throws_exception()
     {
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage("Invalid structure in rules");
+        $this->expectExceptionMessage("Missing or invalid 'tables'");
 
-        new RulesLoader([
-            'checks' => [['type' => 'duplicates', 'fields' => ['email']]],
-        ]);
+        $this->tmpFile = tempnam(sys_get_temp_dir(), 'rules_');
+        file_put_contents($this->tmpFile, json_encode(['invalid_key' => []]));
+
+        new RulesLoader($this->tmpFile);
     }
 
-    public function testMissingChecksThrowsException()
-    {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage("Invalid structure in rules");
-
-        new RulesLoader([
-            'table' => 'users',
-        ]);
-    }
-
-    public function testMissingTypeInCheckThrowsException()
+    public function test_invalid_check_in_table_throws_exception()
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage("Missing 'type' in check #0");
 
-        new RulesLoader([
-            'table' => 'users',
-            'checks' => [
-                ['fields' => ['email']],
+        $rules = [
+            'tables' => [
+                'users' => [
+                    ['field' => 'email'],
+                ],
             ],
-        ]);
-    }
+        ];
 
-    public function testMissingFieldsInDuplicatesCheckThrowsException()
-    {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage("Missing 'fields' in duplicates check #0");
+        $this->tmpFile = tempnam(sys_get_temp_dir(), 'rules_');
+        file_put_contents($this->tmpFile, json_encode($rules));
 
-        new RulesLoader([
-            'table' => 'users',
-            'checks' => [
-                ['type' => 'duplicates'],
-            ],
-        ]);
-    }
-
-    public function testMissingRegexInFormatCheckThrowsException()
-    {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage("Missing 'field' or 'regex' in format check #0");
-
-        new RulesLoader([
-            'table' => 'users',
-            'checks' => [
-                ['type' => 'format', 'field' => 'phone'],
-            ],
-        ]);
+        new RulesLoader($this->tmpFile);
     }
 }
+

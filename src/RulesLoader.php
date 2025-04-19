@@ -8,10 +8,9 @@ class RulesLoader
 {
     private array $rules;
 
-    public function __construct(array $rules)
+    public function __construct(string $filePath)
     {
-        $this->validate($rules);
-        $this->rules = $rules;
+        $this->rules = $this->loadFromFile($filePath);
     }
 
     public function getRules(): array
@@ -19,23 +18,48 @@ class RulesLoader
         return $this->rules;
     }
 
-    private function validate(array $rules): void
+    private function loadFromFile(string $filePath): array
     {
-        if (!isset($rules['table']) || !isset($rules['checks']) || !is_array($rules['checks'])) {
-            throw new RuntimeException("Invalid structure in rules.");
+        if (! file_exists($filePath)) {
+            throw new RuntimeException("Rules file not found: $filePath");
         }
 
-        foreach ($rules['checks'] as $i => $check) {
-            if (!isset($check['type'])) {
-                throw new RuntimeException("Missing 'type' in check #$i");
+        $json = file_get_contents($filePath);
+        $rules = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException('Invalid JSON in rules file: '.json_last_error_msg());
+        }
+
+        $this->validate($rules);
+
+        return $rules;
+    }
+
+    private function validate(array $rules): void
+    {
+        if (! isset($rules['tables']) || ! is_array($rules['tables'])) {
+            throw new RuntimeException("Missing or invalid 'tables' in rules.");
+        }
+
+        foreach ($rules['tables'] as $table => $checks) {
+
+            if (! is_array($checks)) {
+                throw new RuntimeException("Invalid checks for table '{$table}'");
             }
 
-            if ($check['type'] === 'duplicates' && !isset($check['fields'])) {
-                throw new RuntimeException("Missing 'fields' in duplicates check #$i");
-            }
+            foreach ($checks as $i => $check) {
+                if (! isset($check['type'])) {
+                    throw new RuntimeException("Missing 'type' in check #$i");
+                }
 
-            if ($check['type'] === 'format' && (!isset($check['field']) || !isset($check['regex']))) {
-                throw new RuntimeException("Missing 'field' or 'regex' in format check #$i");
+                if ($check['type'] === 'duplicates' && ! isset($check['fields'])) {
+                    throw new RuntimeException("Missing 'fields' in duplicates check #$i");
+                }
+
+                if ($check['type'] === 'format' && (! isset($check['field']) || ! isset($check['regex']))) {
+                    throw new RuntimeException("Missing 'field' or 'regex' in format check #$i");
+                }
             }
         }
     }
