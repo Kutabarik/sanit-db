@@ -15,14 +15,21 @@ class DoctrineRepository implements RepositoryInterface
 
     public function getTableData(string $table, array $fields): array
     {
-        $sql = "SELECT " . implode(", ", $fields) . " FROM {$table}";
+        $sql = 'SELECT '.implode(', ', $fields)." FROM {$table}";
+
         return $this->connection->fetchAllAssociative($sql);
     }
 
     public function getDuplicates(string $table, array $fields): array
     {
-        $fieldList = implode(", ", $fields);
+        $fieldList = implode(', ', $fields);
         $sql = "SELECT $fieldList, COUNT(*) as count FROM {$table} GROUP BY $fieldList HAVING count > 1";
+
         return $this->connection->fetchAllAssociative($sql);
+    }
+
+    public function deleteRows(string $table, array $conditions): int
+    {
+        return $this->connection->delete($table, $conditions);
     }
 }

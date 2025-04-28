@@ -10,8 +10,7 @@ use Kutabarik\SanitDb\Rules\RulesLoader;
 
 final class SanitDb
 {
-    public function __construct(private RepositoryInterface $db)
-    {}
+    public function __construct(private RepositoryInterface $db) {}
 
     /**
      * Starts the data analysis process using an array of rules (e.g. from config).
@@ -27,10 +26,13 @@ final class SanitDb
 
         foreach ($allRules['tables'] as $table => $checks) {
             foreach ($checks as $check) {
-                $fields = $check['fields'] ?? [$check['field']];
+                $fields = array_unique(array_merge(['id'], $check['fields'] ?? [$check['field']]));
                 $data = $this->db->getTableData($table, $fields);
+
                 $analyzer = $this->createAnalyzer($check['type'], $data, $check);
-                $results[$table][$check['type']][] = $analyzer->analyze();
+                $badEntries = $analyzer->analyze();
+
+                $results[$table][$check['type']] = $badEntries;
             }
         }
 
@@ -53,23 +55,33 @@ final class SanitDb
         };
     }
 
-    public function clean(string $rulesFile, string $action = 'delete'): void
+    public function processAndDelete(string $rulesFile): array
     {
         $loader = new RulesLoader($rulesFile);
-        $rules = $loader->getRules();
+        $allRules = $loader->getRules();
+        $results = [];
 
-        foreach ($rules['tables'] as $table => $checks) {
+        foreach ($allRules['tables'] as $table => $checks) {
             foreach ($checks as $check) {
-                $fields = $check['fields'] ?? [$check['field']];
+                $fields = array_unique(array_merge(['id'], $check['fields'] ?? [$check['field']]));
                 $data = $this->db->getTableData($table, $fields);
 
                 $analyzer = $this->createAnalyzer($check['type'], $data, $check);
-                if ($action === 'delete') {
-                    $analyzer->deleteInvalid();
-                } elseif ($action === 'fix') {
-                    $analyzer->fixInvalid();
+                $badEntries = $analyzer->analyze();
+
+                $results[$table][$check['type']] = $badEntries;
+
+                foreach ($badEntries as $entry) {
+                    if (! isset($entry['row']['id'])) {
+                        throw new \RuntimeException("Missing 'id' field for deletion in table '{$table}'");
+                    }
+
+                    $id = $entry['row']['id'];
+                    $this->db->deleteRows($table, ['id' => $id]);
                 }
             }
         }
+
+        return $results;
     }
 }

@@ -11,7 +11,6 @@ interface AnalyzerInterface
      */
     public function analyze(): array;
 
-    public function deleteInvalid(): void;
 
-    public function fixInvalid(): void;
+    /* public function fixInvalid(): void; */
 }
