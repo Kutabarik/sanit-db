@@ -28,7 +28,8 @@ class RulesLoader
         $rules = json_decode($json, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException("Invalid JSON in rules file: " . json_last_error_msg());
+            throw new RuntimeException('Invalid JSON in rules file: '.json_last_error_msg());
+
         }
 
         RulesValidator::validate($rules);
@@ -36,4 +37,3 @@ class RulesLoader
         return $rules;
     }
 }
-
