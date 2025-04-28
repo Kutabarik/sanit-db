@@ -5,7 +5,7 @@ namespace Kutabarik\SanitDb\Analyzer;
 class FormatAnalyzer implements AnalyzerInterface
 {
     private array $data;
-
+  
     private string $field;
 
     private string $regex;
@@ -34,6 +34,7 @@ class FormatAnalyzer implements AnalyzerInterface
                         'invalid_value' => $row[$this->field],
                         'expected_format' => $this->regex,
                     ],
+
                 ];
             }
         }

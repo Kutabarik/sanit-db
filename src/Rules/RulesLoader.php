@@ -29,6 +29,7 @@ class RulesLoader
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new RuntimeException('Invalid JSON in rules file: '.json_last_error_msg());
+
         }
 
         RulesValidator::validate($rules);

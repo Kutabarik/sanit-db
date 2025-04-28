@@ -30,6 +30,7 @@ class DuplicateAnalyzer implements AnalyzerInterface
                         'duplicate_key' => $key,
                     ],
                 ];
+
             } else {
                 $seen[$key] = true;
             }
