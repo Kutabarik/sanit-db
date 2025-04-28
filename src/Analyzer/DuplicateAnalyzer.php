@@ -5,6 +5,7 @@ namespace Kutabarik\SanitDb\Analyzer;
 class DuplicateAnalyzer implements AnalyzerInterface
 {
     private array $data;
+
     private array $fields;
 
     public function __construct(array $data, array $fields)
@@ -19,9 +20,16 @@ class DuplicateAnalyzer implements AnalyzerInterface
         $duplicates = [];
 
         foreach ($this->data as $row) {
-            $key = implode('|', array_map(fn($field) => $row[$field] ?? '', $this->fields));
+            $key = implode('|', array_map(fn ($field) => $row[$field] ?? '', $this->fields));
             if (isset($seen[$key])) {
-                $duplicates[] = $row;
+                $duplicates[] = [
+                    'row' => $row,
+                    'error' => 'Duplicate entry detected',
+                    'details' => [
+                        'duplicate_fields' => $this->fields,
+                        'duplicate_key' => $key,
+                    ],
+                ];
             } else {
                 $seen[$key] = true;
             }

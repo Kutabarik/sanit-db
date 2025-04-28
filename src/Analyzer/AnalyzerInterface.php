@@ -10,7 +10,4 @@ interface AnalyzerInterface
      * @return array An array of found issues.
      */
     public function analyze(): array;
-
-
-    /* public function fixInvalid(): void; */
 }
