@@ -2,15 +2,41 @@
 
 namespace Kutabarik\SanitDb\Rules;
 
+use InvalidArgumentException;
+use Kutabarik\SanitDb\Contracts\RuleStrategy;
 use RuntimeException;
 
 class RulesLoader
 {
     private array $rules;
 
-    public function __construct(string $filePath)
+    private array $handlers = [];
+
+    public function __construct(private RuleHandlerRegistry $registry) {}
+
+    public function getHandler(string $type): RuleStrategy
     {
-        $this->rules = $this->loadFromFile($filePath);
+        return $this->registry->get($type);
+    }
+
+    public function loadFromFile(string $path): void
+    {
+        if (! file_exists($path)) {
+            throw new InvalidArgumentException("Rules file not found: {$path}");
+        }
+
+        $decoded = json_decode(file_get_contents($path), true);
+
+        if (! is_array($decoded)) {
+            throw new RuntimeException('Invalid JSON format in rules file.');
+        }
+
+        $this->rules = $decoded;
+    }
+
+    public function registerHandler(RuleStrategy $handler): void
+    {
+        $this->handlers[] = $handler;
     }
 
     public function getRules(): array
@@ -18,22 +44,8 @@ class RulesLoader
         return $this->rules;
     }
 
-    private function loadFromFile(string $filePath): array
+    public function filterBy(string $key, string $value): array
     {
-        if (! file_exists($filePath)) {
-            throw new RuntimeException("Rules file not found: $filePath");
-        }
-
-        $json = file_get_contents($filePath);
-        $rules = json_decode($json, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException('Invalid JSON in rules file: '.json_last_error_msg());
-
-        }
-
-        RulesValidator::validate($rules);
-
-        return $rules;
+        return array_filter($this->rules, fn ($r) => ($r[$key] ?? null) === $value);
     }
 }

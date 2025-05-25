@@ -2,79 +2,57 @@
 
 namespace Kutabarik\SanitDb\Rules;
 
-use RuntimeException;
+use Kutabarik\SanitDb\Rules\RuleDTO;
 
 class RulesManager
 {
-    public function __construct(
-        private string $filePath
-    ) {}
+    private string $path;
 
-    public function all(): array
+    public function __construct(string $jsonFilePath)
     {
-        if (! file_exists($this->filePath)) {
-            return ['tables' => []];
-        }
-
-        $json = file_get_contents($this->filePath);
-        $rules = json_decode($json, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException('Invalid JSON: '.json_last_error_msg());
-        }
-
-        return $rules;
+        $this->path = $jsonFilePath;
     }
 
-    public function getTableRules(string $table): array
+    public function getAll(): array
     {
-        $rules = $this->all();
+        $raw = json_decode(file_get_contents($this->path), true);
 
-        return $rules['tables'][$table] ?? [];
+        return array_map(fn ($r) => RuleDTO::fromArray($r), $raw);
     }
 
-    public function addRule(string $table, array $newRule): void
+    public function get(string $name): ?RuleDTO
     {
-        $rules = $this->all();
-        $rules['tables'][$table][] = $newRule;
-        $this->save($rules);
-    }
-
-    public function updateRule(string $table, int $index, array $updatedRule): void
-    {
-        $rules = $this->all();
-
-        if (! isset($rules['tables'][$table][$index])) {
-            throw new RuntimeException("Rule at index $index not found in table '$table'.");
+        foreach ($this->getAll() as $rule) {
+            if ($rule->name === $name) {
+                return $rule;
+            }
         }
 
-        $rules['tables'][$table][$index] = $updatedRule;
-        $this->save($rules);
+        return null;
     }
 
-    public function deleteRule(string $table, int $index): void
+    public function save(RuleDTO $newRule): void
     {
-        $rules = $this->all();
+        $all = $this->getAll();
 
-        if (! isset($rules['tables'][$table][$index])) {
-            throw new RuntimeException("Rule at index $index not found in table '$table'.");
-        }
+        $updated = array_filter($all, fn (RuleDTO $r) => $r->name !== $newRule->name);
+        $updated[] = $newRule;
 
-        unset($rules['tables'][$table][$index]);
-        $rules['tables'][$table] = array_values($rules['tables'][$table]);
-        $this->save($rules);
+        file_put_contents(
+            $this->path,
+            json_encode(array_map(fn ($r) => $r->toArray(), $updated), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
     }
 
-    public function save(array $rules): void
+    public function delete(string $name): void
     {
-        RulesValidator::validate($rules);
+        $all = $this->getAll();
 
-        $encoded = json_encode($rules, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        $filtered = array_filter($all, fn (RuleDTO $r) => $r->name !== $name);
 
-        if ($encoded === false) {
-            throw new RuntimeException('Failed to encode rules to JSON.');
-        }
-
-        file_put_contents($this->filePath, $encoded);
+        file_put_contents(
+            $this->path,
+            json_encode(array_map(fn ($r) => $r->toArray(), $filtered), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
     }
 }

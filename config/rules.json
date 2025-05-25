@@ -1,22 +1,30 @@
-{
-  "tables": {
-    "users": [
-      {
-        "type": "duplicates",
-        "fields": ["email"]
-      },
-      {
-        "type": "format",
-        "field": "phone",
-        "regex": "^\\+373[0-9]{8}$"
-      }
-    ],
-    "posts": [
-      {
-        "type": "format",
-        "field": "title",
-        "regex": "^[A-Z].{3,}$"
-      }
-    ]
+[
+  {
+    "name": "email_is_null",
+    "table": "users",
+    "scope": "attribute",
+    "level": "instance",
+    "category": "single-source",
+    "field": "email",
+    "type": "is_null"
+  },
+  {
+    "name": "email_regex_check",
+    "table": "users",
+    "scope": "attribute",
+    "level": "instance",
+    "category": "single-source",
+    "field": "email",
+    "type": "regex",
+    "regex": "^\\w+([-+.'']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
+  },
+  {
+    "name": "duplicate_emails",
+    "table": "users",
+    "scope": "record_type",
+    "level": "instance",
+    "category": "single-source",
+    "fields": ["email"],
+    "type": "duplicates"
   }
-}
+]
