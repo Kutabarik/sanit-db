@@ -1,0 +1,28 @@
+[
+  {
+    "name": "email_is_null",
+    "table": "users",
+    "scope": "attribute",
+    "field": "email",
+    "type": "is_null"
+  },
+  {
+    "table": "users",
+    "scope": "attribute",
+    "field": "email",
+    "type": "email"
+  },
+  {
+    "table": "users",
+    "scope": "attribute",
+    "field": "email",
+    "type": "regex",
+    "regex": "^\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
+  },
+  {
+    "table": "users",
+    "scope": "record type",
+    "field": "email",
+    "type": "duplicates"
+  }
+]
