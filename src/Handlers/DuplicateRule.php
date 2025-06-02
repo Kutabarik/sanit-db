@@ -19,18 +19,16 @@ class DuplicateRule implements RuleStrategy
 
         foreach ($data as $row) {
             $key = implode('|', array_map(fn ($f) => $row[$f] ?? '', $fields));
+            $id = $row['id'] ?? null;
 
             if (isset($seen[$key])) {
                 $duplicates[] = [
                     'row' => $row,
                     'error' => 'Duplicate entry found',
-                    'details' => [
-                        'duplicate_fields' => $fields,
-                        'duplicate_key' => $key,
-                    ],
+                    'duplicate_ids' => [$seen[$key], $id],
                 ];
             } else {
-                $seen[$key] = true;
+                $seen[$key] = $id;
             }
         }
 

@@ -2,8 +2,8 @@
 
 namespace Kutabarik\SanitDb;
 
-use Kutabarik\SanitDb\Rules\RulesLoader;
 use Kutabarik\SanitDb\Database\RepositoryInterface;
+use Kutabarik\SanitDb\Rules\RulesLoader;
 
 class SanitDb
 {
@@ -31,27 +31,35 @@ class SanitDb
         return $results;
     }
 
-    public function processAndDelete(string $rulesFile): array
+    public function deleteFromResults(array $results): int
     {
-        $this->loader->loadFromFile($rulesFile);
-        $rules = $this->loader->getRules();
+        $count = 0;
+
+        foreach ($results as $table => $rules) {
+            foreach ($rules as $entries) {
+                foreach ($entries as $entry) {
+                    if (isset($entry['row']['id'])) {
+                        $this->db->deleteRows($table, ['id' => $entry['row']['id']]);
+                        $count++;
+                    }
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    public function processRules(array $rules): array
+    {
         $results = [];
 
         foreach ($rules as $rule) {
-            $fields = array_unique(array_merge(['id'], $rule['fields'] ?? [$rule['field'] ?? 'id']));
-            $data = $this->db->getTableData($rule['table'], $fields);
+            $fields = array_unique(array_merge(['id'], $rule->fields ?? [$rule->field ?? 'id']));
+            $data = $this->db->getTableData($rule->table, $fields);
+            $handler = $this->loader->getHandler($rule->type);
+            $badEntries = $handler->analyze($data, $rule->toArray());
 
-            $handler = $this->loader->getHandler($rule['type']);
-            $badEntries = $handler->analyze($data, $rule);
-
-            $results[$rule['table']][$rule['name'] ?? $rule['type']] = $badEntries;
-
-            foreach ($badEntries as $entry) {
-                if (! isset($entry['row']['id'])) {
-                    throw new \RuntimeException("Missing 'id' for deletion in table {$rule['table']}");
-                }
-                $this->db->deleteRows($rule['table'], ['id' => $entry['row']['id']]);
-            }
+            $results[$rule->table][$rule->name ?? $rule->type] = $badEntries;
         }
 
         return $results;
