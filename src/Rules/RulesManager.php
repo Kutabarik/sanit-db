@@ -2,8 +2,6 @@
 
 namespace Kutabarik\SanitDb\Rules;
 
-use Kutabarik\SanitDb\Rules\RuleDTO;
-
 class RulesManager
 {
     private string $path;
@@ -40,7 +38,10 @@ class RulesManager
 
         file_put_contents(
             $this->path,
-            json_encode(array_map(fn ($r) => $r->toArray(), $updated), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+            json_encode(
+                array_values(array_map(fn ($r) => $r->toArray(), $updated)),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+            )
         );
     }
 
